@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.cmd {
         Command::Create { list_name } => task_list.create_list(list_name.into()),
-    }
+    }?;
 
     Ok(())
 }
