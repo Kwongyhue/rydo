@@ -64,13 +64,13 @@ impl TaskList {
             println!("Rydo {}", task_list.path.display());
             for task in task_list.tasks {
                 println!("Task: {}", task.name);
-                println!("State: {}", task.state.to_string());
+                println!("State: {}", task.state);
                 let local_dc = task.date_created.naive_local();
-                println!("Created: {}", local_dc.to_string());
+                println!("Created: {local_dc}");
                 if let Some(date_completed) = task.date_completed {
                     println!("Completed: {}", date_completed.date_naive());
                 };
-                println!("Time spent: {}", task.time_spent.to_string());
+                println!("Time spent: {}", task.time_spent);
             }
             Ok(())
         }
