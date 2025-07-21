@@ -4,7 +4,7 @@ use serde_with::serde_as;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
-enum TaskState {
+pub enum TaskState {
     Active,
     Inactive,
     Complete,
@@ -14,11 +14,11 @@ enum TaskState {
 #[derive(Serialize, Deserialize)]
 pub struct Task {
     #[serde(with = "uuid::serde::urn")]
-    id: Uuid,
-    name: String,
-    state: TaskState,
-    date_created: DateTime<Utc>,
-    date_completed: DateTime<Utc>,
-    time_spent: i64,
-    active_start_time: i64,
+    pub id: Uuid,
+    pub name: String,
+    pub state: TaskState,
+    pub date_created: DateTime<Utc>,
+    pub date_completed: Option<DateTime<Utc>>,
+    pub time_spent: i64,
+    pub active_start_time: Option<i64>,
 }
