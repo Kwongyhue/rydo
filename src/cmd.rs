@@ -4,12 +4,12 @@ use chrono::{DateTime, Duration, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+use std::cmp::{max, min};
 use std::error::Error;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use std::cmp::{max, min};
 use std::time::SystemTime;
 use tasks::{Task, TaskState};
 use uuid::Uuid;
@@ -99,12 +99,17 @@ impl TaskList {
             );
             Err(err_msg.into())
         } else {
-            // let mut file = File::open(self.path.as_path())?;
-            let mut file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .truncate(true)
-                .open(self.path.as_path())?;
+            let mut file = OpenOptions::new().read(true).open(self.path.as_path())?;
+            let mut json_string = String::new();
+            file.read_to_string(&mut json_string)?;
+            let mut task_list: TaskList = serde_json::from_str(json_string.as_str())?;
+            for task in task_list.tasks.iter() {
+                if task.name == task_name {
+                    let err_msg =
+                        format!("{task_name} already exists. Choose a different task name");
+                    return Err(err_msg.into());
+                }
+            }
             let task = Task {
                 id: Uuid::new_v4(),
                 name: task_name,
@@ -114,8 +119,12 @@ impl TaskList {
                 time_spent: Duration::zero(),
                 active_start_time: None,
             };
-            self.tasks.push(task);
-            let task_list_json = serde_json::to_string_pretty(self)?;
+            task_list.tasks.push(task);
+            let task_list_json = serde_json::to_string_pretty(&task_list)?;
+            let mut file = OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(self.path.as_path())?;
             file.write_all(task_list_json.as_bytes())?;
             Ok(())
         }
@@ -129,9 +138,7 @@ impl TaskList {
             );
             Err(err_msg.into())
         } else {
-            let mut file = OpenOptions::new()
-                .read(true)
-                .open(self.path.as_path())?;
+            let mut file = OpenOptions::new().read(true).open(self.path.as_path())?;
             let mut json_string = String::new();
             file.read_to_string(&mut json_string)?;
             let mut task_list: TaskList = serde_json::from_str(&json_string)?;
@@ -172,7 +179,7 @@ impl TaskList {
                 found_task.state = TaskState::Active;
                 found_task.active_start_time = Some(SystemTime::now());
             } else {
-                let err_msg = format!("{} task name does not exist", task_name);
+                let err_msg = format!("{task_name} task name does not exist");
                 return Err(err_msg.into());
             }
             let mut file = OpenOptions::new()
