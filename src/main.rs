@@ -24,6 +24,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut task_list = TaskList::new(list_name.into());
             task_list.add_task(task_name)
         }
+        Command::SetActive {
+            list_name,
+            task_name,
+        } => {
+            let task_list = TaskList::new(list_name.into());
+            task_list.set_active(task_name)
+        }
     }?;
 
     Ok(())

@@ -9,6 +9,8 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::io::prelude::*;
 use std::path::PathBuf;
+use std::cmp::{max, min};
+use std::time::SystemTime;
 use tasks::{Task, TaskState};
 use uuid::Uuid;
 
@@ -24,8 +26,10 @@ pub enum Command {
         list_name: String,
         task_name: String,
     },
-    //     List { list_name: String },
-    //     SetActive { list_name: String, task_name: String, },
+    SetActive {
+        list_name: String,
+        task_name: String,
+    },
     //     SetInactive {},
     //     SetComplete {},
 }
@@ -99,6 +103,7 @@ impl TaskList {
             let mut file = OpenOptions::new()
                 .read(true)
                 .write(true)
+                .truncate(true)
                 .open(self.path.as_path())?;
             let task = Task {
                 id: Uuid::new_v4(),
@@ -115,7 +120,70 @@ impl TaskList {
             Ok(())
         }
     }
-    // pub fn mark_active() {}
+
+    pub fn set_active(&self, task_name: String) -> Result<(), Box<dyn Error>> {
+        if !self.path.exists() {
+            let err_msg = format!(
+                "{} does not exist. First create a list with rydo create <list_name>",
+                self.path.display(),
+            );
+            Err(err_msg.into())
+        } else {
+            let mut file = OpenOptions::new()
+                .read(true)
+                .open(self.path.as_path())?;
+            let mut json_string = String::new();
+            file.read_to_string(&mut json_string)?;
+            let mut task_list: TaskList = serde_json::from_str(&json_string)?;
+            let mut found_index = None;
+            let mut active_index = None;
+            for (index, task) in task_list.tasks.iter().enumerate() {
+                if task.state == TaskState::Active {
+                    active_index = Some(index);
+                }
+                if task.name == task_name {
+                    found_index = Some(index);
+                }
+            }
+            if let (Some(found), Some(active)) = (found_index, active_index) {
+                if found != active {
+                    let (low, high) = (min(found, active), max(found, active));
+                    let (first, second) = task_list.tasks.split_at_mut(high);
+
+                    let first_task = &mut first[low];
+                    let second_task = &mut second[0];
+
+                    if found < active {
+                        first_task.state = TaskState::Active;
+                        first_task.active_start_time = Some(SystemTime::now());
+                        second_task.state = TaskState::Inactive;
+                        second_task.active_start_time = None;
+                    } else {
+                        first_task.state = TaskState::Inactive;
+                        first_task.active_start_time = None;
+                        second_task.state = TaskState::Active;
+                        second_task.active_start_time = Some(SystemTime::now());
+                    }
+                    println!("{}", first_task.state);
+                    println!("{}", second_task.state);
+                }
+            } else if let Some(found) = found_index {
+                let found_task = &mut task_list.tasks[found];
+                found_task.state = TaskState::Active;
+                found_task.active_start_time = Some(SystemTime::now());
+            } else {
+                let err_msg = format!("{} task name does not exist", task_name);
+                return Err(err_msg.into());
+            }
+            let mut file = OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(self.path.as_path())?;
+            let json_string = serde_json::to_string_pretty(&task_list)?;
+            let _ = file.write_all(json_string.as_bytes());
+            Ok(())
+        }
+    }
     // pub fn mark_inactive() {}
     // pub fn mark_complete() {}
 }

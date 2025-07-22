@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use strum_macros::Display;
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Display)]
+#[derive(Serialize, Deserialize, Display, PartialEq)]
 pub enum TaskState {
     Active,
     Inactive,
