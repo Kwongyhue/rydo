@@ -1,6 +1,6 @@
 mod tasks;
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, TimeDelta, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -30,7 +30,10 @@ pub enum Command {
         list_name: String,
         task_name: String,
     },
-    //     SetInactive {},
+    SetInactive {
+        list_name: String,
+        task_name: String,
+    },
     //     SetComplete {},
 }
 
@@ -191,6 +194,35 @@ impl TaskList {
             Ok(())
         }
     }
-    // pub fn mark_inactive() {}
+
+    pub fn set_inactive(&self, task_name: String) -> Result<(), Box<dyn Error>> {
+        let mut file = OpenOptions::new().read(true).open(self.path.as_path())?;
+        let mut task_list_json = String::new();
+        file.read_to_string(&mut task_list_json)?;
+        let mut task_list: TaskList = serde_json::from_str(task_list_json.as_str())?;
+        for task in task_list.tasks.iter_mut() {
+            if task.name == task_name {
+                if task.state == TaskState::Inactive || task.state == TaskState::Complete {
+                    let err_msg = format!("Task {} is {}", task.name, task.state);
+                    return Err(err_msg.into());
+                }
+                if let Some(start_time) = task.active_start_time {
+                    let diff = SystemTime::now().duration_since(start_time)?;
+                    let delta = TimeDelta::seconds(diff.as_secs().try_into().unwrap());
+                    task.time_spent += delta;
+                    task.state = TaskState::Inactive;
+                } else {
+                    return Err("Start time not present in active task".into());
+                };
+            }
+        }
+        let mut file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(self.path.as_path())?;
+        let task_list_json = serde_json::to_string_pretty(&task_list)?;
+        let _ = file.write_all(task_list_json.as_bytes());
+        Ok(())
+    }
     // pub fn mark_complete() {}
 }
