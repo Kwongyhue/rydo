@@ -38,6 +38,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let task_list = TaskList::new(list_name.into());
             task_list.set_inactive(task_name)
         }
+        Command::MarkComplete {
+            list_name,
+            task_name,
+        } => {
+            let task_list = TaskList::new(list_name.into());
+            task_list.mark_complete(task_name)
+        }
     }?;
 
     Ok(())

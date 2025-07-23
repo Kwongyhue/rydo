@@ -34,7 +34,10 @@ pub enum Command {
         list_name: String,
         task_name: String,
     },
-    //     SetComplete {},
+    MarkComplete {
+        list_name: String,
+        task_name: String,
+    },
 }
 
 #[serde_as]
@@ -190,7 +193,7 @@ impl TaskList {
                 .truncate(true)
                 .open(self.path.as_path())?;
             let json_string = serde_json::to_string_pretty(&task_list)?;
-            let _ = file.write_all(json_string.as_bytes());
+            file.write_all(json_string.as_bytes())?;
             Ok(())
         }
     }
@@ -221,8 +224,34 @@ impl TaskList {
             .truncate(true)
             .open(self.path.as_path())?;
         let task_list_json = serde_json::to_string_pretty(&task_list)?;
-        let _ = file.write_all(task_list_json.as_bytes());
+        file.write_all(task_list_json.as_bytes())?;
         Ok(())
     }
-    // pub fn mark_complete() {}
+
+    pub fn mark_complete(&self, task_name: String) -> Result<(), Box<dyn Error>> {
+        let mut file = OpenOptions::new().read(true).open(self.path.as_path())?;
+        let mut json_string = String::new();
+        file.read_to_string(&mut json_string)?;
+        let mut task_list: TaskList = serde_json::from_str(json_string.as_str())?;
+        for task in task_list.tasks.iter_mut() {
+            if task.name == task_name {
+                if task.state == TaskState::Active
+                    && let Some(start_time) = task.active_start_time
+                {
+                    let diff = SystemTime::now().duration_since(start_time)?;
+                    let delta = TimeDelta::seconds(diff.as_secs().try_into().unwrap());
+                    task.time_spent += delta;
+                    task.active_start_time = None;
+                }
+                task.state = TaskState::Complete;
+            }
+        }
+        let mut file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(self.path.as_path())?;
+        let task_list_json = serde_json::to_string_pretty(&task_list)?;
+        file.write_all(task_list_json.as_bytes())?;
+        Ok(())
+    }
 }
