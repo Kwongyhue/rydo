@@ -109,12 +109,7 @@ impl TaskListManager {
             active_start_time: None,
         };
         task_list.tasks.push(task);
-        let task_list_json = serde_json::to_string_pretty(&task_list)?;
-        let mut file = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(self.path.as_path())?;
-        file.write_all(task_list_json.as_bytes())?;
+        self.write_to_file(task_list)?;
         Ok(())
     }
 
@@ -163,12 +158,7 @@ impl TaskListManager {
             let err_msg = format!("{task_name} task name does not exist");
             return Err(err_msg.into());
         }
-        let mut file = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(self.path.as_path())?;
-        let json_string = serde_json::to_string_pretty(&task_list)?;
-        file.write_all(json_string.as_bytes())?;
+        self.write_to_file(task_list)?;
         Ok(())
     }
 
@@ -190,12 +180,7 @@ impl TaskListManager {
                 };
             }
         }
-        let mut file = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(self.path.as_path())?;
-        let task_list_json = serde_json::to_string_pretty(&task_list)?;
-        file.write_all(task_list_json.as_bytes())?;
+        self.write_to_file(task_list)?;
         Ok(())
     }
 
@@ -214,12 +199,7 @@ impl TaskListManager {
                 task.state = TaskState::Complete;
             }
         }
-        let mut file = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(self.path.as_path())?;
-        let task_list_json = serde_json::to_string_pretty(&task_list)?;
-        file.write_all(task_list_json.as_bytes())?;
+        self.write_to_file(task_list)?;
         Ok(())
     }
 
@@ -237,5 +217,12 @@ impl TaskListManager {
         file.read_to_string(&mut json_string)?;
         let task_list: TaskList = serde_json::from_str(json_string.as_str())?;
         Ok(task_list)
+    }
+
+    fn write_to_file(&self, task_list: TaskList) -> Result<(), Box<dyn Error>> {
+        let mut file =  OpenOptions::new().write(true).truncate(true).open(self.path.as_path())?;
+        let task_list_json = serde_json::to_string_pretty(&task_list)?;
+        file.write_all(task_list_json.as_bytes())?;
+        Ok(())
     }
 }
