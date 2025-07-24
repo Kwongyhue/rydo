@@ -37,6 +37,11 @@ pub enum Command {
         list_name: String,
         task_name: String,
     },
+    AddUrl {
+        list_name: String,
+        task_name: String,
+        url: String,
+    }
 }
 
 #[serde_as]
@@ -107,6 +112,7 @@ impl TaskListManager {
             date_completed: None,
             time_spent: Duration::zero(),
             active_start_time: None,
+            ticket_url: None
         };
         task_list.tasks.push(task);
         self.write_to_file(task_list)?;
@@ -201,6 +207,19 @@ impl TaskListManager {
         }
         self.write_to_file(task_list)?;
         Ok(())
+    }
+
+    pub fn add_url(&self, task_name: String, url: String) -> Result<(), Box<dyn Error>>{
+        let mut task_list = self.read_task_file()?;
+        for task in task_list.tasks.iter_mut() {
+            if task.name == task_name {
+                task.ticket_url = Some(url.clone());
+                self.write_to_file(task_list)?;
+                return Ok(());
+            }
+        }
+        let err_msg = format!("{task_name} not found. Cannot add url");
+        Err(err_msg.into())
     }
 
     // Helper functions

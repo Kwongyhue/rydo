@@ -22,4 +22,5 @@ pub struct Task {
     pub date_completed: Option<DateTime<Utc>>,
     pub time_spent: Duration,
     pub active_start_time: Option<DateTime<Utc>>,
+    pub ticket_url: Option<String>,
 }

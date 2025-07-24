@@ -45,6 +45,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let tl_manager = TaskListManager::new(list_name.into());
             tl_manager.mark_complete(task_name)
         }
+        Command::AddUrl {
+            list_name,
+            task_name,
+            url,
+        } => {
+            let tl_manager = TaskListManager::new(list_name.into());
+            tl_manager.add_url(task_name, url)
+        }
     }?;
 
     Ok(())
