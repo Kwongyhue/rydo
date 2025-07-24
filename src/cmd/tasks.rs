@@ -14,7 +14,6 @@ pub enum TaskState {
 #[serde_as]
 #[derive(Serialize, Deserialize)]
 pub struct Task {
-    #[serde(with = "uuid::serde::urn")]
     pub id: Uuid,
     pub name: String,
     pub state: TaskState,
