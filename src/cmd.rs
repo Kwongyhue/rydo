@@ -49,7 +49,7 @@ pub enum Command {
 pub struct TaskList {
     pub created: DateTime<Utc>,
     pub tasks: Vec<Task>,
-    pub elapsed: i64,
+    pub total_time_spent: Duration,
 }
 
 pub struct TaskListManager {
@@ -86,7 +86,7 @@ impl TaskListManager {
             let task_list = TaskList {
                 created: Utc::now(),
                 tasks: Vec::new(),
-                elapsed: 0,
+                total_time_spent: Duration::zero(),
             };
             let list_json = serde_json::to_string_pretty(&task_list).unwrap();
             let _ = file.write_all(list_json.as_bytes());
@@ -181,6 +181,7 @@ impl TaskListManager {
                     let delta = TimeDelta::seconds(diff.num_seconds());
                     task.time_spent += delta;
                     task.state = TaskState::Inactive;
+                    task_list.total_time_spent += delta;
                 } else {
                     return Err("Start time not present in active task".into());
                 };
@@ -201,6 +202,7 @@ impl TaskListManager {
                     let delta = TimeDelta::seconds(diff.num_seconds());
                     task.time_spent += delta;
                     task.active_start_time = None;
+                    task_list.total_time_spent += delta;
                 }
                 task.state = TaskState::Complete;
             }
