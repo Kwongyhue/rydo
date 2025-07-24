@@ -1,5 +1,6 @@
 mod tasks;
 
+use crate::error::RydoError;
 use chrono::{DateTime, Duration, Local, TimeDelta, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
@@ -100,8 +101,10 @@ impl TaskListManager {
         let mut task_list: TaskList = serde_json::from_str(json_string.as_str())?;
         for task in task_list.tasks.iter() {
             if task.name == task_name {
-                let err_msg = format!("{task_name} already exists. Choose a different task name");
-                return Err(err_msg.into());
+                return Err(Box::new(RydoError::TaskAlreadyExists(
+                    task_name,
+                    self.path.display().to_string(),
+                )));
             }
         }
         let task = Task {
@@ -161,8 +164,10 @@ impl TaskListManager {
             found_task.state = TaskState::Active;
             found_task.active_start_time = Some(Local::now().to_utc());
         } else {
-            let err_msg = format!("{task_name} task name does not exist");
-            return Err(err_msg.into());
+            return Err(Box::new(RydoError::TaskNotFound(
+                task_name,
+                self.path.display().to_string(),
+            )));
         }
         self.write_to_file(task_list)?;
         Ok(())
@@ -173,8 +178,10 @@ impl TaskListManager {
         for task in task_list.tasks.iter_mut() {
             if task.name == task_name {
                 if task.state == TaskState::Inactive || task.state == TaskState::Complete {
-                    let err_msg = format!("Task {} is {}", task.name, task.state);
-                    return Err(err_msg.into());
+                    return Err(Box::new(RydoError::TaskNotFound(
+                        task_name,
+                        self.path.display().to_string(),
+                    )));
                 }
                 if let Some(start_time) = task.active_start_time {
                     let diff = Local::now().to_utc().signed_duration_since(start_time);
@@ -220,18 +227,18 @@ impl TaskListManager {
                 return Ok(());
             }
         }
-        let err_msg = format!("{task_name} not found. Cannot add url");
-        Err(err_msg.into())
+        Err(Box::new(RydoError::TaskNotFound(
+            task_name,
+            self.path.display().to_string(),
+        )))
     }
 
     // Helper functions
     fn read_task_file(&self) -> Result<TaskList, Box<dyn Error>> {
         if !self.path.exists() {
-            let err_msg = format!(
-                "{} does not exist. First create a list with rydo create <list_name>",
-                self.path.display(),
-            );
-            return Err(err_msg.into());
+            return Err(Box::new(RydoError::ListNotFound(
+                self.path.display().to_string(),
+            )));
         }
         let mut file = OpenOptions::new().read(true).open(self.path.as_path())?;
         let mut json_string = String::new();
