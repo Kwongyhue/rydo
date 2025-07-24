@@ -41,7 +41,7 @@ pub enum Command {
         list_name: String,
         task_name: String,
         url: String,
-    }
+    },
 }
 
 #[serde_as]
@@ -112,7 +112,7 @@ impl TaskListManager {
             date_completed: None,
             time_spent: Duration::zero(),
             active_start_time: None,
-            ticket_url: None
+            ticket_url: None,
         };
         task_list.tasks.push(task);
         self.write_to_file(task_list)?;
@@ -211,7 +211,7 @@ impl TaskListManager {
         Ok(())
     }
 
-    pub fn add_url(&self, task_name: String, url: String) -> Result<(), Box<dyn Error>>{
+    pub fn add_url(&self, task_name: String, url: String) -> Result<(), Box<dyn Error>> {
         let mut task_list = self.read_task_file()?;
         for task in task_list.tasks.iter_mut() {
             if task.name == task_name {
@@ -241,7 +241,10 @@ impl TaskListManager {
     }
 
     fn write_to_file(&self, task_list: TaskList) -> Result<(), Box<dyn Error>> {
-        let mut file =  OpenOptions::new().write(true).truncate(true).open(self.path.as_path())?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(self.path.as_path())?;
         let task_list_json = serde_json::to_string_pretty(&task_list)?;
         file.write_all(task_list_json.as_bytes())?;
         Ok(())
