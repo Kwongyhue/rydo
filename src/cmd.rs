@@ -1,6 +1,6 @@
 mod tasks;
 
-use chrono::{DateTime, Duration, TimeDelta, Utc};
+use chrono::{DateTime, Duration, Local, TimeDelta, Utc};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -10,7 +10,6 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use std::time::SystemTime;
 use tasks::{Task, TaskState};
 use uuid::Uuid;
 
@@ -168,14 +167,14 @@ impl TaskList {
 
                     if found < active {
                         first_task.state = TaskState::Active;
-                        first_task.active_start_time = Some(SystemTime::now());
+                        first_task.active_start_time = Some(Local::now().to_utc());
                         second_task.state = TaskState::Inactive;
                         second_task.active_start_time = None;
                     } else {
                         first_task.state = TaskState::Inactive;
                         first_task.active_start_time = None;
                         second_task.state = TaskState::Active;
-                        second_task.active_start_time = Some(SystemTime::now());
+                        second_task.active_start_time = Some(Local::now().to_utc());
                     }
                     println!("{}", first_task.state);
                     println!("{}", second_task.state);
@@ -183,7 +182,7 @@ impl TaskList {
             } else if let Some(found) = found_index {
                 let found_task = &mut task_list.tasks[found];
                 found_task.state = TaskState::Active;
-                found_task.active_start_time = Some(SystemTime::now());
+                found_task.active_start_time = Some(Local::now().to_utc());
             } else {
                 let err_msg = format!("{task_name} task name does not exist");
                 return Err(err_msg.into());
@@ -210,8 +209,8 @@ impl TaskList {
                     return Err(err_msg.into());
                 }
                 if let Some(start_time) = task.active_start_time {
-                    let diff = SystemTime::now().duration_since(start_time)?;
-                    let delta = TimeDelta::seconds(diff.as_secs().try_into().unwrap());
+                    let diff = Local::now().to_utc().signed_duration_since(start_time);
+                    let delta = TimeDelta::seconds(diff.num_seconds());
                     task.time_spent += delta;
                     task.state = TaskState::Inactive;
                 } else {
@@ -238,8 +237,8 @@ impl TaskList {
                 if task.state == TaskState::Active
                     && let Some(start_time) = task.active_start_time
                 {
-                    let diff = SystemTime::now().duration_since(start_time)?;
-                    let delta = TimeDelta::seconds(diff.as_secs().try_into().unwrap());
+                    let diff = Local::now().to_utc().signed_duration_since(start_time);
+                    let delta = TimeDelta::seconds(diff.num_seconds());
                     task.time_spent += delta;
                     task.active_start_time = None;
                 }

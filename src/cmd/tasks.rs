@@ -1,7 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use std::time::SystemTime;
 use strum_macros::Display;
 use uuid::Uuid;
 
@@ -22,5 +21,5 @@ pub struct Task {
     pub date_created: DateTime<Utc>,
     pub date_completed: Option<DateTime<Utc>>,
     pub time_spent: Duration,
-    pub active_start_time: Option<SystemTime>,
+    pub active_start_time: Option<DateTime<Utc>>,
 }
