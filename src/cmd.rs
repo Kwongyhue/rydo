@@ -42,20 +42,18 @@ pub enum Command {
 #[serde_as]
 #[derive(Serialize, Deserialize)]
 pub struct TaskList {
-    pub path: PathBuf,
     pub created: DateTime<Utc>,
     pub tasks: Vec<Task>,
     pub elapsed: i64,
 }
 
-impl TaskList {
+pub struct TaskListManager {
+    pub path: PathBuf,
+}
+
+impl TaskListManager {
     pub fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            created: Utc::now(),
-            tasks: Vec::new(),
-            elapsed: 0,
-        }
+        Self { path }
     }
 
     pub fn show_list(&self) -> Result<(), Box<dyn Error>> {
@@ -70,7 +68,7 @@ impl TaskList {
             let mut json_string = String::new();
             file.read_to_string(&mut json_string)?;
             let task_list: TaskList = serde_json::from_str(&json_string)?;
-            println!("Rydo {}", task_list.path.display());
+            println!("Rydo {}", self.path.display());
             for task in task_list.tasks {
                 println!("Task: {}", task.name);
                 println!("State: {}", task.state);
@@ -91,7 +89,12 @@ impl TaskList {
         } else {
             println!("Creating {}", self.path.display());
             let mut file = File::create(self.path.as_path())?;
-            let list_json = serde_json::to_string_pretty(self).unwrap();
+            let task_list = TaskList {
+                created: Utc::now(),
+                tasks: Vec::new(),
+                elapsed: 0,
+            };
+            let list_json = serde_json::to_string_pretty(&task_list).unwrap();
             let _ = file.write_all(list_json.as_bytes());
         }
         Ok(())
